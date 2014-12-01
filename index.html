@@ -28,11 +28,12 @@
     <ion-pane ng-controller="ChatCtrl">
       <ion-header-bar class="bar bar-header bar-positive">
         <h1 class="title">Agile Chatroom</h1>
-        <button ng-hide="isLogin" class="button" ng-click="fb_login()">Login</button>
-        <button ng-show="isLogin" ng-cloak>{{ LoginUser.name }}</button>
+        <button ng-show="isLogin()" class="button pull-left" ng-cloak>{{ userInfo().name }}</button>
+        <button ng-hide="isLogin()" class="button pull-right" ng-click="login()" ng-cloak>Login</button>
+        <button ng-show="isLogin()" class="button pull-right" ng-click="logout()" ng-cloak>Logout</button>
       </ion-header-bar>
       <ion-content>
-        <div class="card" ng-repeat="msg in messages">
+        <div class="card" ng-repeat="msg in messages" ng-cloak>
           <div class="item item-avatar">
             <img ng-src="{{msg.picture}}">
             <h2 ng-cloak>{{ msg.text }}</h2>

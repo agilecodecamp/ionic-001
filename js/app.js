@@ -1,36 +1,85 @@
-// Ionic Starter App
-
-// angular.module is a global place for creating, registering and retrieving Angular modules
-// 'starter' is the name of this angular module example (also set in a <body> attribute in index.html)
-// the 2nd parameter is an array of 'requires'
 var app = angular.module("chatApp", ["firebase", 'ionic']);
 
-app.controller("ChatCtrl", function ($scope, $firebase, $firebaseAuth) {
-  $scope.LoginUser = {};
-  $scope.authData = {};
+// login service
+app.service('FBLogin', function ($firebase, $firebaseAuth) {
+  var loginObject = {};
   
-  var fbref = new Firebase("https://todosagile.firebaseio.com/");
-  $scope.authObj = $firebaseAuth(fbref);
+  // firebase reference
+  loginObject.__firebaseRef = new Firebase('https://todosagile.firebaseio.com/');
+  loginObject.__authObject = $firebaseAuth(loginObject.__firebaseRef);
   
-  $scope.fb_login = function () {
-    $scope.authObj.$authWithOAuthPopup("facebook")
+  // user object
+  loginObject.__initData = function () {
+    loginObject.__isLogin = false;
+    loginObject.__User = {};
+  };
+  
+  // process user data
+  loginObject.__preProcessData = function (authData) {
+    loginObject.__User = {};
+    loginObject.__User.name = authData.facebook.displayName;
+ 	  loginObject.__User.gender = authData.facebook.cachedUserProfile.gender;
+ 	  loginObject.__User.imgSrc = authData.facebook.cachedUserProfile.picture.data.url;
+ 	  
+    loginObject.__isLogin = true;
+    loginObject.__authData = authData;
+  };
+  
+  // check is user auth
+  loginObject.__authObject.$onAuth(function (authData) {
+    if (authData) {
+      console.log("Logged in as:", authData.uid);
+      loginObject.__preProcessData(authData);
+    } else {
+      console.log("Logged out");
+      loginObject.__initData();
+    }
+  });
+  
+  /**
+   * public function
+   */
+  
+  // login fb
+  loginObject.doLogin = function () {
+    loginObject.__authObject.$authWithOAuthPopup("facebook")
     .then(function(authData) {
-      $scope.isLogin = true;
-      console.log(authData);
-      console.log("Logged in as:", authData.facebook.displayName);
-      $scope.LoginUser.name = authData.facebook.displayName;
- 		$scope.LoginUser.gender = authData.facebook.cachedUserProfile.gender;
-      $scope.authData = authData;
-    	
-    }).catch(function(error) {
+      loginObject.__preProcessData(authData);
+    })
+    .catch(function(error) {
       console.error("Authentication failed:", error);
     });
   };
   
-  $scope.isLogin = false;
+  // logout fb
+  loginObject.doLogout = function () {
+    loginObject.__authObject.$unauth();
+  };
   
+  // current User
+  loginObject.getCurrentUser = function () {
+    return loginObject.__User;
+  };
+  
+  // check login
+  loginObject.isLogin = function () {
+    return loginObject.__isLogin;
+  }
+  
+  return loginObject;
+});
+
+
+app.controller("ChatCtrl", function ($scope, $firebase, $firebaseAuth, FBLogin) {
+  
+  $scope.login = FBLogin.doLogin;
+  $scope.logout = FBLogin.doLogout;
+  $scope.isLogin = FBLogin.isLogin;
+  $scope.userInfo = FBLogin.getCurrentUser;
+  
+  // message reference
   var ref = new Firebase("https://todosagile.firebaseio.com/messages");
-  
+  ref = ref.limitToLast(50);
   var sync = $firebase(ref);
   $scope.messages = sync.$asArray();
   
@@ -38,18 +87,17 @@ app.controller("ChatCtrl", function ($scope, $firebase, $firebaseAuth) {
     if (!$scope.isLogin) {
       return;
     }
-    
+    // new message object
     var newMessage = {
+      name : $scope.userInfo().name,
       text : text,
-      gender: $scope.LoginUser.gender,
-      name : $scope.LoginUser.name,
-      date: Date.now(),
-      picture: $scope.authData.facebook.cachedUserProfile.picture.data.url
+      gender: $scope.userInfo().gender,
+      picture: $scope.userInfo().imgSrc,
+      date: Date.now()
     };
-    
+    // add data to firebase
     $scope.messages.$add(newMessage);
-    
-    
+    // clear text
     $scope.newtext = "";
   };
   
