@@ -70,7 +70,7 @@ app.service('FBLogin', function ($firebase, $firebaseAuth) {
 });
 
 
-app.controller("ChatCtrl", function ($scope, $firebase, $firebaseAuth, FBLogin) {
+app.controller("ChatCtrl", function ($scope, $firebase, $firebaseAuth, FBLogin, $ionicScrollDelegate) {
   
   $scope.login = FBLogin.doLogin;
   $scope.logout = FBLogin.doLogout;
@@ -80,6 +80,10 @@ app.controller("ChatCtrl", function ($scope, $firebase, $firebaseAuth, FBLogin) 
   // message reference
   var ref = new Firebase("https://todosagile.firebaseio.com/messages");
   ref = ref.limitToLast(50);
+  // when new message come, auto scroll to bottom
+  ref.on('child_added', function(childSnapshot, prevChildName) {
+    $ionicScrollDelegate.scrollBottom();
+  });
   var sync = $firebase(ref);
   $scope.messages = sync.$asArray();
   
